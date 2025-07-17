@@ -1,42 +1,49 @@
 import pandas as pd
+import yaml
+from collections import Counter
+
+from github_client import repo
+from data_fetch import get_contributors,get_readme_contributors_remote_df
+
 
 def calculate_pr_merge_rate(pr_df):
     if pr_df.empty:
-        print("No PR data available.")
-        return 0
+        msg = "No PR data available."
+        return 0, msg
+    
     total_pr = len(pr_df)
     merged_pr = pr_df["merged_at"].notnull().sum()
     merge_rate = merged_pr / total_pr * 100 if total_pr > 0 else 0
-    print(f"Total PRs: {total_pr}, Merged PRs: {merged_pr}, Merge Rate: {merge_rate:.2f}%")
-    return merge_rate
+    
+    msg = f"Total Pull Requests: {total_pr}, Merged: {merged_pr}, Merge Rate: {merge_rate:.2f}%"
+    return merge_rate, msg
+
 
 def analyze_pr_review_time(pr_df):
     if pr_df.empty:
-        print("No PR data for review time analysis.")
-        return
+        return "No PR data for review time analysis."
 
     merged_prs = pr_df.loc[pr_df["merged_at"].notnull()].copy()
     if merged_prs.empty:
-        print("No merged PRs for review time analysis.")
-        return
+        return "No merged PRs for review time analysis."
 
     merged_prs.loc[:, "duration"] = (merged_prs["merged_at"] - merged_prs["created_at"]).dt.days
     avg_duration = merged_prs["duration"].mean()
-    print(f"Average PR merge time (days): {avg_duration:.2f}")
+    return f"Average PR merge time (days): {avg_duration:.2f}"
+
 
 def analyze_issue_resolution(issue_df):
     if issue_df.empty:
-        print("No Issue data for resolution analysis.")
-        return
+        return "No Issue data for resolution analysis."
 
     closed_issues = issue_df.loc[issue_df["closed_at"].notnull()].copy()
     if closed_issues.empty:
-        print("No closed issues for resolution analysis.")
-        return
+        return "No closed issues for resolution analysis."
 
     closed_issues.loc[:, "resolution_time"] = (closed_issues["closed_at"] - closed_issues["created_at"]).dt.days
     median_resolution = closed_issues['resolution_time'].median()
-    print(f"Median issue resolution time: {median_resolution} days")
+    return f"Median issue resolution time: {median_resolution} days"
+
 
 def get_contribution_summary(commits_df, prs_df, issues_df, comments_df):
     for df in [commits_df, prs_df, issues_df, comments_df]:
@@ -53,6 +60,7 @@ def get_contribution_summary(commits_df, prs_df, issues_df, comments_df):
 
     return summary_df
 
+
 def expand_commit_language_df(commits_df):
 
     rows = []
@@ -62,10 +70,61 @@ def expand_commit_language_df(commits_df):
             rows.append({"login": login, "language": lang})
     return pd.DataFrame(rows)
 
+
 def get_contributor_language_stats(commits_df):
 
     lang_df = expand_commit_language_df(commits_df)
     stats = lang_df.groupby(["login", "language"]).size().unstack(fill_value=0)
     stats["all"] = stats.sum(axis=1)
     return stats
+
+
+def find_missing_contributors_from_readme_and_github():
+    """
+    Compare contributor lists from GitHub API and README config.
+    Print contributors present in GitHub but missing in README file.
+    """
+    github_df = get_contributors()
+    github_contributors = set(github_df['login'].str.lower())
+
+    readme_df = get_readme_contributors_remote_df()
+    readme_contribs = set(readme_df['login'].str.lower())
+
+    missing = github_contributors - readme_contribs
+    print(f"Contributors on GitHub but missing in README (username): {len(missing)}")
+    for user in missing:
+        print(user)
+
+
+def count_languages_in_glossary(file_path="glossary.yml"):
+    try:
+        content_file = repo.get_contents(file_path)
+        raw = content_file.decoded_content.decode("utf-8")
+        glossary = yaml.safe_load(raw)
+    except Exception as e:
+        print(f"Unable to read or parse {file_path}：{e}")
+        return pd.DataFrame()
+
+    lang_counter = Counter()
+
+    if isinstance(glossary, dict):
+ 
+        for slug, translations in glossary.items():
+            if isinstance(translations, dict):
+                for lang_code in translations.keys():
+                    lang_counter[lang_code] += 1
+    elif isinstance(glossary, list):
+ 
+        for entry in glossary:
+            if isinstance(entry, dict):
+               
+                for key in entry.keys():
+                    if key not in ("slug", "id", "title"):  
+                        lang_counter[key] += 1
+    else:
+        print("The glossary data structure is neither a dict nor a list.")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(lang_counter.items(), columns=["language", "entry_count"])
+    return df.sort_values("entry_count", ascending=False).reset_index(drop=True)
 
