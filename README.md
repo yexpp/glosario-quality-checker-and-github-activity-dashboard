@@ -112,4 +112,3 @@ Data visualisation: producing interactive visualisation charts.
 
 Once complete, you can view the interactive dashboard.
 
-
