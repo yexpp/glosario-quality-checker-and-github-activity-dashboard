@@ -3,7 +3,7 @@ from github_client import repo
 from cache import cache_data
 from data_fetch import (
     get_contributors, get_commits, get_pull_requests, get_issues,
-    get_issue_comments, get_readme_contributors_remote_df, get_file_contributors_df,
+    get_issue_comments, get_readme_contributors_remote_df, get_file_contributors_df, get_all_comments,
 )
 from preprocess import (
     preprocess_commit_data, preprocess_pr_data, preprocess_issue_data, preprocess_comments_data
@@ -13,29 +13,50 @@ from analysis import (
     expand_commit_language_df, get_contribution_summary, get_contributor_language_stats,
     count_languages_in_glossary,find_missing_contributors_from_readme_and_github
 )
+from utils import anonymize_login
 
 def run_pipeline():
+    """
+    Run the full data processing and analysis pipeline:
+    - Load data from cache or fetch from GitHub API.
+    - Merge, preprocess, and anonymize contributor and activity data.
+    - Perform various analyses and generate summary statistics.
+    - Normalize DataFrame indices for consistent output.
+    
+    Returns:
+        dict: Dictionary containing processed DataFrames and analysis results.
+    """
+
     # Load data (use cache if available, otherwise fetch from API)
     contributors_df = cache_data("cache_contributors.json", get_contributors)
     commits_df = cache_data("cache_commits.json", get_commits)
     pr_df = cache_data("cache_prs.json", get_pull_requests)
     issue_df = cache_data("cache_issues.json", get_issues)
-    comments_df = cache_data("cache_comments.json", get_issue_comments)
+    comments_df = cache_data("cache_comments.json", get_all_comments)
     glossary_contribs_df = cache_data("cache_glossary_contribs.json", get_file_contributors_df)
     readme_contribs_df = cache_data("cache_readme_contributors.json", get_readme_contributors_remote_df)  
 
-    # Merge README contributors with glossary commit counts, fill missing with zero
+    # Merge README contributors with glossary commit counts, fill missing values with zero
     df_commit_counts = glossary_contribs_df.rename(columns={"contributor": "login"}).set_index("login")
     df_merged = readme_contribs_df.join(df_commit_counts, how="left").fillna(0)
     df_merged["commits"] = df_merged["commits"].astype(int)
 
-    # Preprocess data for analysis
+    # Preprocess datetime columns in all datasets
     commits_df = preprocess_commit_data(commits_df)
     pr_df = preprocess_pr_data(pr_df)
     issue_df = preprocess_issue_data(issue_df)
     comments_df = preprocess_comments_data(comments_df)
 
-    # Perform stats and analyses
+    # Anonymize login names across all datasets
+    contributors_df = anonymize_login(contributors_df)
+    commits_df = anonymize_login(commits_df)
+    pr_df = anonymize_login(pr_df)
+    issue_df = anonymize_login(issue_df)
+    comments_df = anonymize_login(comments_df)
+    readme_contribs_df = anonymize_login(readme_contribs_df)
+    glossary_contribs_df = anonymize_login(glossary_contribs_df.rename(columns={"contributor": "login"})).rename(columns={"login": "contributor"})
+
+    # Perform analysis and generate statistics
     stats_df = get_contributor_language_stats(commits_df)
     merge_rate = calculate_pr_merge_rate(pr_df)
     analyze_pr_review_time(pr_df)
@@ -44,24 +65,22 @@ def run_pipeline():
     contrib_summary_df = get_contribution_summary(commits_df, pr_df, issue_df, comments_df)
     glossary_lang_df = count_languages_in_glossary()
 
-
-    # Reset the index of each DataFrame in the list to start from 1
+    # Reset indices to start from 1 for all DataFrames in this list
     dfs_to_fix = [
-    commits_df,
-    pr_df,
-    issue_df,
-    comments_df,
-    contributors_df,
-    readme_contribs_df,     
-    glossary_contribs_df,    
-    glossary_lang_df
-]
+        commits_df,
+        pr_df,
+        issue_df,
+        comments_df,
+        contributors_df,
+        readme_contribs_df,     
+        glossary_contribs_df,    
+        glossary_lang_df
+    ]
 
     for df in dfs_to_fix:
         df.index = range(1, len(df) + 1)
-    
 
-    # Return all results
+    # Return all processed DataFrames and analysis results
     return {
         "contributors_df": contributors_df,
         "commits_df": commits_df,

@@ -66,6 +66,7 @@ def load_yaml(yaml_str):
         return None
 
 
+
 def get_slug_line_map(glossary):
     """
     Return a dict mapping each slug to its line number (1-based).
@@ -288,6 +289,16 @@ def check_def_style(glossary, style='>', slug_lines=None):
 
 
 def check_ref_validity(glossary, slug_lines=None):
+    """
+    Check that all referenced slugs exist in the glossary.
+
+    Args:
+        glossary: Glossary entries containing references.
+        slug_lines: Optional dict mapping slugs to line info.
+
+    Returns:
+        List of reference issues with nonexistent slugs.
+    """
     issues = []
     all_slugs = {entry['slug'] for entry in iter_valid_entries(glossary)}
 
@@ -298,11 +309,60 @@ def check_ref_validity(glossary, slug_lines=None):
             continue
         for ref_slug in ref_list:
             if ref_slug not in all_slugs:
-                issues.append(f"Entry '{slug}'{line_info} has ref pointing to nonexistent slug '{ref_slug}'>")
+                issues.append(f"Entry '{slug}'{line_info} has ref pointing to nonexistent slug '{ref_slug}'.")
+    return issues
+
+
+def check_slug_order(glossary, slug_lines=None):
+    """
+    Verify that glossary slugs follow file line order,
+    and report if any slug appears out of alphabetical order.
+
+    Args:
+        glossary: Glossary entries to check.
+        slug_lines: Optional dict mapping slugs to line numbers.
+
+    Returns:
+        List of slugs with ordering issues.
+    """
+    issues = []
+    slug_lines = slug_lines or {}
+
+    valid_entries = list(iter_valid_entries(glossary))
+
+    valid_entries = sorted(valid_entries, key=lambda e: slug_lines.get(e['slug'], 999999))
+    slugs_file_order = [entry['slug'] for entry in valid_entries]
+
+
+    slugs_alpha_order = sorted(slugs_file_order)
+    slug_to_alpha_index = {slug: i for i, slug in enumerate(slugs_alpha_order)}
+
+    reported_slugs = set()
+
+    for i, slug in enumerate(slugs_file_order):
+        alpha_pos = slug_to_alpha_index[slug]
+        for later_slug in slugs_file_order[i+1:]:
+            if slug_to_alpha_index[later_slug] < alpha_pos:
+                if later_slug not in reported_slugs:
+                    line_num = slug_lines.get(later_slug, 'unknown line number')
+                    issues.append(f"[WARNING] - Slug'{later_slug}' (line {line_num}) is out of order.")
+                    reported_slugs.add(later_slug)
+               
     return issues
 
 
 def check_cross_language_links(glossary, slug_lines=None):
+    """
+    Check that links in English definitions appear in other languages too.
+    
+    Args:
+        glossary: Glossary entries with multilingual definitions.
+        slug_lines: Optional mapping of slugs to line info.
+        
+    Returns:
+        List of issues where links are missing in other languages.
+    """
+    
     issues = []
     glossary_by_slug = {}
 
@@ -331,83 +391,16 @@ def check_cross_language_links(glossary, slug_lines=None):
     return issues
 
 
-def select_problem_slug(current_slug, next_slug, slug_to_order_idx, slug_lines, i):
-    current_order_idx = slug_to_order_idx[current_slug]
-    next_order_idx = slug_to_order_idx[next_slug]
-    current_pos = i + 1
-    next_pos = i + 2
-
-    current_error = current_pos - current_order_idx
-    next_error = next_pos - next_order_idx
-
-    if abs(current_error) > abs(next_error):
-        slug = current_slug
-        order = current_order_idx
-        pos = current_pos
-    else:
-        slug = next_slug
-        order = next_order_idx
-        pos = next_pos
-
-    line_info = format_line_info(slug, slug_lines)
-    return {
-        'slug': slug,
-        'line': line_info.strip(), 
-        'order': order,
-        'pos': pos,
-    }
-
-
-def determine_direction(problem_pos, problem_order):
-    if problem_pos > problem_order:
-        return "move up"
-    elif problem_pos < problem_order:
-        return "move down"
-    else:
-        return "remain in the same position"
-
-
-def check_slug_order(glossary, slug_lines=None):
-    """
-    Check if the slugs in glossary entries are in strictly increasing alphabetical order.
-    """
-    issues = []
-
-    slug_lines = slug_lines or {}
-    valid_entries = list(iter_valid_entries(glossary))
-    slugs = [entry['slug'] for entry in valid_entries]
-    sorted_slugs = sorted(slugs)
-    slug_to_order_idx = {slug: i + 1 for i, slug in enumerate(sorted_slugs)}
-
-    for i in range(len(slugs) - 1):
-        current_slug = slugs[i]
-        next_slug = slugs[i + 1]
-
-        if current_slug > next_slug:
-            problem = select_problem_slug(current_slug, next_slug, slug_to_order_idx, slug_lines, i)
-            direction = determine_direction(problem['pos'], problem['order'])
-
-            if 0 < problem['order'] <= len(slugs):
-                slug_ref = slugs[problem['order'] - 1]
-                slug_ref_line = format_line_info(slug_ref, slug_lines)
-                problem_line = format_line_info(problem['slug'], slug_lines)
-
-                if direction == "move up":
-                    issues.append(
-                        f"Slug '{problem['slug']}'{problem_line} should be moved up， placed after the slug  Slug '{slug_ref}'{slug_ref_line}。"
-                        )
-                elif direction == "move down":
-                    issues.append(
-                        f"Slug '{problem['slug']}'{problem_line} should be moved down， placed after the Slug '{slug_ref}'{slug_ref_line}。"
-                    )
-
-    return issues
-
-
 def check_language_order(glossary, slug_lines=None):
     """
-    Check if language codes in each glossary entry follow an accepted order:
-    Either fully alphabetical, or with 'en' first followed by the rest in alphabetical order.
+    Ensure language codes are ordered alphabetically or with 'en' first.
+
+    Args:
+        glossary: Glossary entries with multilingual content.
+        slug_lines: Optional dict mapping slugs to line info.
+
+    Returns:
+        List of entries with incorrect language order.
     """
     issues = []
     
@@ -422,5 +415,4 @@ def check_language_order(glossary, slug_lines=None):
             issues.append(f"Entry '{slug}'{line_info}: {language_keys}")
 
     return issues
-
 

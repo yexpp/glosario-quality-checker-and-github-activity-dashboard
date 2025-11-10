@@ -22,23 +22,33 @@ from glossary_checker import (
 
 
 def info(msg, *args):
-    print(f"[INFO] {msg % args if args else msg}")
+    """Print informational messages to stdout."""
+    print(f" {msg % args if args else msg}")
 
 
 def warning(msg, *args):
+    """Print warning messages to stderr."""
     print(f"[WARNING] {msg % args if args else msg}", file=sys.stderr)
 
 
 def error(msg, *args):
+    """Print error messages to stderr."""
     print(f"[ERROR] {msg % args if args else msg}", file=sys.stderr)
 
 
 def exception(msg, *args):
+    """Print error message and stack trace to stderr."""
     print(f"[ERROR] {msg % args if args else msg}", file=sys.stderr)
     traceback.print_exc(file=sys.stderr)
 
 
 def load_glossary():
+    """
+    Load glossary content from YAML file.
+    
+    Returns:
+        Parsed glossary data or None if loading fails.
+    """
     try:
         glossary_str = get_glossary_yml_content()
         if not glossary_str:
@@ -58,6 +68,15 @@ def load_glossary():
 
 
 def load_language_codes(json_path: Path):
+    """
+    Load language codes from a JSON file.
+    
+    Args:
+        json_path: Path to the language codes JSON file.
+        
+    Returns:
+        Dictionary mapping language codes to language names.
+    """
     if not json_path.is_file():
         error("Language codes file not found: %s", json_path)
         return {}
@@ -70,6 +89,16 @@ def load_language_codes(json_path: Path):
 
 
 def report_basic_format(glossary, slug_lines):
+    """
+    Validate basic glossary structure and formatting.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        
+    Returns:
+        True if issues found, else False.
+    """
     issues = validate_glossary(glossary, slug_lines=slug_lines)
     if issues:
         warning("Found basic format issues:")
@@ -82,6 +111,16 @@ def report_basic_format(glossary, slug_lines):
 
 
 def report_ref_validity(glossary, slug_lines):
+    """
+    Check if all 'ref' entries point to existing slugs.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        
+    Returns:
+        True if issues found, else False.
+    """
     issues = check_ref_validity(glossary, slug_lines=slug_lines)
     if issues:
         warning("Issues found with refs:")
@@ -94,12 +133,23 @@ def report_ref_validity(glossary, slug_lines):
 
 
 def report_cross_links(glossary, slug_lines, language_names):
+    """
+    Verify cross-language reference links are consistent.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        language_names: Dict of language code to language name.
+        
+    Returns:
+        True if missing links found, else False.
+    """
     issues = check_cross_language_links(glossary, slug_lines)
     if not issues:
         info("All cross-reference links are consistent across languages.")
         return False
 
-    # Group by (slug, line, missing_link) -> langs
+    # Group missing links by (slug, line, missing_link) and languages
     grouped = defaultdict(list)
     for issue in issues:
         line = slug_lines.get(issue["slug"]) if slug_lines else None
@@ -129,6 +179,16 @@ def report_cross_links(glossary, slug_lines, language_names):
 
 
 def report_slug_order(glossary, slug_lines):
+    """
+    Check that glossary entries are sorted alphabetically by slug.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        
+    Returns:
+        True if sorting issues found, else False.
+    """
     issues = check_slug_order(glossary, slug_lines=slug_lines)
     if issues:
         warning("Entries are not sorted in slug alphabetical order:")
@@ -141,6 +201,16 @@ def report_slug_order(glossary, slug_lines):
 
 
 def report_language_order(glossary, slug_lines):
+    """
+    Check language code order in each entry is valid.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        
+    Returns:
+        True if ordering issues found, else False.
+    """
     issues = check_language_order(glossary, slug_lines=slug_lines)
     if issues:
         warning("Entries with incorrect language code order:")
@@ -153,6 +223,16 @@ def report_language_order(glossary, slug_lines):
 
 
 def report_empty_defs(glossary, slug_lines):
+    """
+    Check that 'def' fields are not empty.
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        
+    Returns:
+        True if empty definitions found, else False.
+    """
     issues = check_def_not_empty(glossary, slug_lines=slug_lines)
     if issues:
         warning("Issues found with def fields:")
@@ -165,6 +245,17 @@ def report_empty_defs(glossary, slug_lines):
 
 
 def report_style(glossary, slug_lines, style_marker=">"):
+    """
+    Validate YAML style of 'def' fields (e.g., folded style).
+    
+    Args:
+        glossary: Glossary data.
+        slug_lines: Mapping of slugs to line info.
+        style_marker: YAML style marker to check for (default '>').
+        
+    Returns:
+        True if style issues found, else False.
+    """
     issues = check_def_style(glossary, style_marker, slug_lines=slug_lines)
     if issues:
         warning("YAML style issues found in def fields:")
@@ -177,6 +268,7 @@ def report_style(glossary, slug_lines, style_marker=">"):
 
 
 def parse_args():
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Glossary validation runner.")
     parser.add_argument(
         "--language-codes",
@@ -194,6 +286,7 @@ def parse_args():
 
 
 def main():
+    """Main function to run glossary validations and report issues."""
     args = parse_args()
     print(f"Running glossary check with args: {args}")
 

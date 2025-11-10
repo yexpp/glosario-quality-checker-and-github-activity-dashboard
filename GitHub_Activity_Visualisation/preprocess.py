@@ -1,24 +1,46 @@
 import pandas as pd
 
-def preprocess_commit_data(commit_df):
-    if not commit_df.empty:
-        commit_df["date"] = pd.to_datetime(commit_df["date"]).dt.tz_localize(None)
-    return commit_df
+def preprocess_datetime_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """
+    Convert specified columns to datetime format and remove timezone information.
 
-def preprocess_pr_data(pr_df):
-    if not pr_df.empty:
-        pr_df["created_at"] = pd.to_datetime(pr_df["created_at"]).dt.tz_localize(None)
-        pr_df["merged_at"] = pd.to_datetime(pr_df["merged_at"]).dt.tz_localize(None)
-    return pr_df
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        columns (list[str]): List of column names to be converted.
 
-def preprocess_issue_data(issue_df):
-    if not issue_df.empty:
-        issue_df["created_at"] = pd.to_datetime(issue_df["created_at"]).dt.tz_localize(None)
-        issue_df["closed_at"] = pd.to_datetime(issue_df["closed_at"]).dt.tz_localize(None)
-    return issue_df
+    Returns:
+        pd.DataFrame: The processed DataFrame with timezone-naive datetime columns.
+    """
+    if not df.empty:
+        for col in columns:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col]).dt.tz_localize(None)
+    return df
 
-def preprocess_comments_data(comments_df):
-    if not comments_df.empty:
-        if "created_at" in comments_df.columns:
-            comments_df["created_at"] = pd.to_datetime(comments_df["created_at"]).dt.tz_localize(None)
-    return comments_df
+
+def preprocess_commit_data(commit_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess commit datetime column.
+    """
+    return preprocess_datetime_columns(commit_df, ["date"])
+
+
+def preprocess_pr_data(pr_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess pull request datetime columns.
+    """
+    return preprocess_datetime_columns(pr_df, ["created_at", "merged_at"])
+
+
+def preprocess_issue_data(issue_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess issue datetime columns.
+    """
+    return preprocess_datetime_columns(issue_df, ["created_at", "closed_at"])
+
+
+def preprocess_comments_data(comments_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess comment datetime column.
+    """
+    return preprocess_datetime_columns(comments_df, ["created_at"])
