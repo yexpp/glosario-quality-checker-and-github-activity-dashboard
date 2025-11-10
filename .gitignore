@@ -3,3 +3,4 @@ __pycache__/
 glossary.yml
 .ipynb_checkpoints/
 *.pyc
+cache*.json
