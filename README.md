@@ -29,6 +29,7 @@ Visualising all metrics with support for interactive exploration.
 
 3. Project Directory Structure
 
+```text
 /README.md
 /requirements.txt
 /GitHub_Activity_Visualisation/
@@ -50,7 +51,7 @@ Visualising all metrics with support for interactive exploration.
 ├── glossary_checker.py
 ├── glossary_check_runner.py
 └── language-codes.json
- 
+```
 
 4. Installation and Dependencies
 
