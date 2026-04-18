@@ -111,10 +111,10 @@ def find_missing_contributors_from_readme_and_github():
     README configuration. Prints contributors present on GitHub but absent
     from the README.
     """
-    github_df = get_contributors()
+    github_df = get_contributors(show_progress=False)
     github_contributors = set(github_df['login'].str.lower())
 
-    readme_df = get_readme_contributors_remote_df()
+    readme_df = get_readme_contributors_remote_df(show_progress=False)
     readme_contribs = set(readme_df['login'].str.lower())
 
     missing = github_contributors - readme_contribs

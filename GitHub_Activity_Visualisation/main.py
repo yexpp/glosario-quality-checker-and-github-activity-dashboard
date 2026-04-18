@@ -13,7 +13,6 @@ from analysis import (
     expand_commit_language_df, get_contribution_summary, get_contributor_language_stats,
     count_languages_in_glossary,find_missing_contributors_from_readme_and_github
 )
-from utils import anonymize_login
 
 def run_pipeline():
     """
@@ -46,15 +45,6 @@ def run_pipeline():
     pr_df = preprocess_pr_data(pr_df)
     issue_df = preprocess_issue_data(issue_df)
     comments_df = preprocess_comments_data(comments_df)
-
-    # Anonymize login names across all datasets
-    contributors_df = anonymize_login(contributors_df)
-    commits_df = anonymize_login(commits_df)
-    pr_df = anonymize_login(pr_df)
-    issue_df = anonymize_login(issue_df)
-    comments_df = anonymize_login(comments_df)
-    readme_contribs_df = anonymize_login(readme_contribs_df)
-    glossary_contribs_df = anonymize_login(glossary_contribs_df.rename(columns={"contributor": "login"})).rename(columns={"login": "contributor"})
 
     # Perform analysis and generate statistics
     stats_df = get_contributor_language_stats(commits_df)

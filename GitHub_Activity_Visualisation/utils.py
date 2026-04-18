@@ -51,27 +51,3 @@ def classify_file(file_path):
     ext = os.path.splitext(file_name)[1]
     return EXTENSION_MAP.get(ext, 'Misc')
 
-
-def anonymize_login(df, login_col='login', salt='default_salt'):
-    """
-    Anonymize user login names by hashing them with a salt.
-
-    Parameters:
-        df (pd.DataFrame): Input DataFrame with login column.
-        login_col (str): Name of the login column.
-        salt (str): Salt string used for consistent hashing.
-
-    Returns:
-        pd.DataFrame: DataFrame with anonymized login values.
-    """
-    if login_col not in df.columns:
-        return df
-
-    def make_anon(u):
-        if pd.isna(u):
-            return u
-        h = hashlib.sha256((str(u) + salt).encode('utf-8')).hexdigest()
-        return f'user_{h[:8]}'
-
-    df[login_col] = df[login_col].apply(make_anon)
-    return df
