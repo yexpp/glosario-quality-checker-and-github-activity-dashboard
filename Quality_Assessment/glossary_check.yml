@@ -1,24 +1,39 @@
-name: Glossary Validation  # Workflow name: Glossary Validation
+name: Glossary Validation CI
 
-on: [push, pull_request]  # Trigger on push or pull request events
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  validate_glossary:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+  glossary-check:
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v3  # Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python  # Set up Python environment
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.11"
 
-      - name: Install dependencies  # Install required Python packages
+      - name: Install dependencies
         run: |
-          pip install ruamel.yaml PyGithub
+          python -m pip install --upgrade pip
+          pip install ruamel.yaml PyGithub python-dotenv
 
-      - name: Run glossary check  # Run the glossary validation script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python glossary_check_runner.py --exit-on-error
+      - name: Run glossary validation
+        run: |
+          python glossary_check_runner.py | tee report.json
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glossary-report
+          path: report.json

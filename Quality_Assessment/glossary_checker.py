@@ -1,10 +1,12 @@
 import re
 import os
 import base64
+import traceback
 
 from io import StringIO
 from ruamel.yaml import YAML
 from github import Github
+from dotenv import load_dotenv
 
 # GitHub repository information and file path configuration
 GITHUB_OWNER = "carpentries"
@@ -14,9 +16,11 @@ GLOSSARY_FILE_PATH = "glossary.yml"
 # Regex pattern to validate slugs: allows only lowercase letters, digits, and underscores
 SLUG_PATTERN = re.compile(r'^[a-z0-9_]+$')
 
-import traceback
+# Load environment variables from .env file if available
+load_dotenv()
 
-def get_glossary_yml_content(owner=GITHUB_OWNER, repo_name=GITHUB_REPO, file_path=GLOSSARY_FILE_PATH):
+
+def get_glossary_yml_content(owner=GITHUB_OWNER,repo_name=GITHUB_REPO,file_path=GLOSSARY_FILE_PATH):
     """
     Fetch the content of a YAML file from a GitHub repository.
     
@@ -26,27 +30,30 @@ def get_glossary_yml_content(owner=GITHUB_OWNER, repo_name=GITHUB_REPO, file_pat
         file_path (str): Path to the file within the repository.
     
     Returns:
-        str or None: File content as a string if successful; None otherwise.
+       str: File content decoded as UTF-8.
+
+    Raises:
+        RuntimeError: If token is missing or API request fails.
     """
-    # Retrieve GitHub access token from environment variables
+    
+
     token = os.getenv("GITHUB_TOKEN")
     if not token:
-        print("Error: GITHUB_TOKEN not found in environment variables.")
-        return None
+        raise RuntimeError(
+            "GitHub API token not found. "
+            "Create a `.env` with GITHUB_TOKEN=your_token or set the environment variable."
+        )
 
     try:
-        # Connect to GitHub API, get repository and file content
         g = Github(token)
         repo = g.get_repo(f"{owner}/{repo_name}")
         file_content = repo.get_contents(file_path)
-        # Decode base64-encoded content and convert to UTF-8 string
-        content = base64.b64decode(file_content.content).decode('utf-8')
+        content = base64.b64decode(file_content.content).decode("utf-8")
         return content
     except Exception as e:
-        print(f"Failed to fetch file: {type(e).__name__}: {e}")
-        return None
+        raise RuntimeError(f"Failed to fetch {file_path} from {owner}/{repo_name}: {type(e).__name__}: {e}")
 
-
+    
 def load_yaml(yaml_str):
     """
     Parse a YAML string using ruamel.yaml and return the corresponding Python object.
@@ -64,7 +71,6 @@ def load_yaml(yaml_str):
     except Exception as e:
         print(f"Failed to parse YAML string: {type(e).__name__}: {e}")
         return None
-
 
 
 def get_slug_line_map(glossary):
@@ -315,8 +321,7 @@ def check_ref_validity(glossary, slug_lines=None):
 
 def check_slug_order(glossary, slug_lines=None):
     """
-    Verify that glossary slugs follow file line order,
-    and report if any slug appears out of alphabetical order.
+    Check whether slugs, in file line order, are sorted alphabetically.
 
     Args:
         glossary: Glossary entries to check.
