@@ -4,4 +4,4 @@ glossary.yml
 .ipynb_checkpoints/
 *.pyc
 cache*.json
-
+.env
