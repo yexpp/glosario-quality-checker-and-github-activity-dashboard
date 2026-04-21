@@ -22,25 +22,24 @@ from glossary_checker import (
 # Dictionary to store logs categorized by check name
 LOGS = defaultdict(list)
 
-# Logging functions to print and store messages
 def info(msg, *args, check_name=None):
     text = f"{msg % args if args else msg}"
-    print("INFO:", text)
+    print("INFO:", text, file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("INFO", text))
         
 def warning(msg, *args, check_name=None):
     text = f"{msg % args if args else msg}"
-    print("WARNING:", text)
+    print("WARNING:", text, file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("WARNING", text))
         
 def error(msg, *args, check_name=None):
     text = f"{msg % args if args else msg}"
-    print("ERROR:", text)
+    print("ERROR:", text, file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("ERROR", text))
-
+        
 
 def load_glossary():
     """
@@ -299,6 +298,11 @@ def run_glossary_check(language_codes_path="language-codes.json"):
 if __name__ == "__main__":
     result = run_glossary_check()
 
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    output_path = "report.json"
 
-    sys.exit(0) 
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
+
+    print(f"Report saved to {output_path}")
+
+    sys.exit(0)

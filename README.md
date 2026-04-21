@@ -1,115 +1,194 @@
-Open Source Project Monitoring: GitHub Activity and Quality Assessment of Glosario
-
-1. Project Overview
-
-This project, implemented in Python, comprises two core modules: the Automated Glossary Quality Checking System and GitHub Repository Activity & Collaboration Analysis. It aims to enhance glossary quality management and transparency in open-source community collaboration, providing multi-dimensional automated validation and visual analytics to support knowledge management and community growth in open-source projects.
-
-The project is particularly designed for open-source maintainers, researchers, and community contributors, helping them to quickly identify issues, optimise collaboration workflows, and support continuous integration and automated quality assurance.
+# glosario-dashboard
 
 
-2. Key Features
+## 1. Glosario Context
 
-Automated Glossary Quality Checking System
+Glosario is an open-source, multilingual glossary of data science terms developed by The Carpentries community. It provides standardised definitions to improve clarity and consistency in educational materials.
 
-Automated Validation: Covers multi-dimensional checks, including glossary compliance, completeness, citation verification, and cross-language reference consistency.
-Tiered Output: Four levels of information (info, warning, error, exception) with colour-coded indicators in a local dashboard for rapid issue localisation.
-Structured Reports: Groups cross-language links by entry and language to improve readability.
-Interactive Visualisation: Uses Jupyter Notebook with colour blocks to intuitively display validation metrics for easier diagnosis and correction.
-Continuous Integration Support: Automatically triggered validation via GitHub Actions to ensure quality in collaborative environments.
-
-GitHub Repository Activity & Collaboration Analysis
-
-This module analyses GitHub repository activity data and collaboration patterns across multiple dimensions, covering contributor behaviour, commit dynamics, pull request (PR) and issue handling, as well as README file content analysis.
-Key capabilities include:
-Analysing monthly activity, commit trends, PR status and turnaround times, and issue resolution.
-Providing in-depth insights into contributor lifecycles, multilingual contributions, and contribution type distributions.
-Detecting missing contributor information in README files.
-Visualising all metrics with support for interactive exploration.
+It is maintained as a structured glossary.yml file and designed for integration with R and Python workflows. It is widely used in educational metadata to ensure consistent terminology across open learning resources.
 
 
-3. Project Directory Structure
+## 2. Glosario Context & GitHub Analytics Toolkit
 
+A Python-based toolkit for validating multilingual glossary quality and analyzing GitHub repository activity, with CI automation and interactive dashboards.
+
+### 2.1 Overview
+
+This project provides a dual-purpose analytics system for open-source repositories:
+
+### 2.2 Glossary Quality Assessment System
+
+Automated multi-dimensional glossary validation with CI-integrated checks via GitHub Actions.
+
+- Core validation is implemented in Python scripts
+- Interactive exploration and debugging are supported through Jupyter Notebooks
+- The Streamlit interface provides an interactive dashboard for quality inspection
+- A CI runner script (`glossary_check_runner.py`) enables local execution of automated checks and outputs results as JSON for further analysis or CI integration  
+
+### 2.3 GitHub Repository Activity Analysis
+
+Repository activity visualisation and contributor behaviour analysis for open-source projects.
+
+- Core data processing and analysis are implemented in Python scripts
+- Interactive visualisation dashboards are provided via Jupyter Notebooks
+- Analysis covers commits, pull requests, and issues to track project evolution
+- Outputs include contributor metrics and repository activity trends
+
+### 2.4 Output
+
+The system supports reproducible analytics workflows for automated quality validation and repository activity analysis, enabling both documentation quality improvement and insight into contributor behaviour and project evolution.
+
+
+##  3. Key Features
+
+### 3.1 Glossary Quality Assessment
+
+Automated validation of glossary structure, format compliance, consistency, and data integrity.
+
+Key checks and insights include:
+
+- Slug and multi-language entry ordering rules  
+- Completeness and structural validity of glossary entries  
+- Format compliance with YAML structure and field requirements  
+- Reference validation and consistency of links across language definitions
+- Severity classification (info, warning, error, exception)  
+- Structured reporting by entry and language  
+- CI integration via GitHub Actions  
+- Local and CI-compatible execution   
+- Interactive quality inspection via Streamlit and Jupyter dashboards  
+
+### 3.2 GitHub Activity Analysis
+
+Repository-wide analysis of contributor behaviour and project evolution, presented through multiple visualisations and tables.
+
+Key insights include:
+
+- Contributor activity, ranking, and engagement analysis  
+- Contributor retention and behavioural pattern analysis  
+- Commit, pull request, and issue lifecycle tracking  
+- Repository collaboration and participation patterns  
+- Temporal trends in repository activity (commits, pull requests, issues)  
+- Codebase contribution analysis by programming language and file type  
+- README content and repository metadata consistency validation
+
+
+## 4. Project Structure
 ```text
-/README.md
-/requirements.txt
-/GitHub_Activity_Visualisation/
-├── analysis.py
-├── cache.py
-├── config.py
-├── data_fetch.py
-├── github_client.py
-├── language-codes.json
-├── main.py
-├── preprocess.py
-├── repo_activity_dashboard.ipynb
-├── utils.py
-└── visualisation.py
+.
+├── .env
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── LICENSE
 
-/Quality_Assessment/
-├── glossary_check.yml
-├── glossary_checker.ipynb
-├── glossary_checker.py
-├── glossary_check_runner.py
-└── language-codes.json
+├── GitHub_Activity_Visualisation/
+│   ├── analysis.py
+│   ├── cache.py
+│   ├── config.py
+│   ├── data_fetch.py
+│   ├── github_client.py
+│   ├── language-codes.json
+│   ├── main.py
+│   ├── preprocess.py
+│   ├── repo_activity_dashboard.ipynb
+│   ├── utils.py
+│   └── visualisation.py
+
+├── Quality_Assessment/
+│   ├── app.py
+│   ├── glossary_checker.ipynb
+│   ├── glossary_checker.py
+│   ├── glossary_check_runner.py
+│   └── language-codes.json
+
+└── .github/
+    └── workflows/
+        └── glossary_check.yml
 ```
 
-4. Installation and Dependencies
+## 5. Installation 
 
-System Requirements
-Python 3.8 or later
-Jupyter Notebook
+### 5.1 System Requirements
+- Python 3.8 or later
+- Jupyter Notebook
 
-Installing Dependencies
+### 5.2 Installing Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-Configuration
-To run this project, you will need to configure the GitHub access token GITHUB_TOKEN for secure access to the GitHub API.
+### 5.3 Environment setup
 
-Setting Environment Variables
-(1). Linux/macOS
-export GITHUB_TOKEN=your_token_here
+- A `.env` file has already been created in the project root directory.
 
-(2). Windows (PowerShell)
-setx GITHUB_TOKEN "your_token_here"
+- Add your GitHub Personal Access Token as follows:
 
+```bash
+   GITHUB_TOKEN=your_github_token_here
+```
 
-5. Quick Start
-
-(1). Glossary Check
-
-python glossary_check_runner.py --language-codes language-codes.json --exit-on-error
-
---language-codes (-l): Path to the language codes JSON file (default: language-codes.json).
-
---exit-on-error: Exit with non-zero status if any validation issues are found (useful for CI integration).
+- This token is required to access the GitHub API and retrieve repository data.
 
 
-(2). GitHub Analysis
+## 6. Quick Start
 
-Open the relevant Notebook files in the notebooks/ directory.
+### 6.1 Glossary Check
 
-Run the data collection, analysis, and visualisation scripts in sequence.
+#### Notebook
+- Open the Jupyter notebook：
+  `Quality_Assessment/glossary_checker.ipynb`
 
-Interactive Plotly charts can be viewed directly within the Notebook.
+#### Local execution
+```bash
+python glossary_check_runner.py 
+```
+##### CI execution
+- This same command is executed automatically in GitHub Actions on push and pull requests, generating validation reports as artifacts.
 
+### 6.2 GitHub Activity Analysis
 
-6. Usage Instructions
+#### Notebook
+- Open the Jupyter notebook：
+   `GitHub_Activity_Visualisation/repo_activity_dashboard.ipynb`
 
-(1).Script Execution
+- Run all cells sequentially to perform analysis:
 
-All glossary validation logic is contained in glossary_checker.py.
+  - Data collection (GitHub API)
+  - Data preprocessing
+  - Metric computation
+  - Visualisation dashboards
 
-The command-line entry point is glossary_check_runner.py.
+### 6.3 CI Integration
 
-(2).Notebook Execution Order
+This project uses GitHub Actions for automated glossary validation.
 
-After opening the Jupyter Notebook, the following steps are executed automatically in sequence:
+#### Workflow file:
 
-Data collection and processing: retrieving repository activity data via the GitHub API.
+- Configuration file:
+`.github/workflows/glossary_check.yml`
 
-Data analysis: calculating statistics and metrics to generate analytical results.
+#### Trigger Conditions
 
-Data visualisation: producing interactive visualisation charts.
+The CI pipeline is triggered on:
 
-Once complete, you can view the interactive dashboard.
+- Push events to main and develop branches
+- Pull request events targeting the main branch
 
+#### CI Workflow Overview
+
+- The CI pipeline performs automated glossary validation and report generation.
+
+#### CI Execution
+
+- In GitHub Actions, the following command is executed automatically:
+  ```bash
+  python glossary_check_runner.py
+  ```
+- This step runs the glossary validation process and generates the output report.
+
+#### CI Outputs
+
+The CI produces:
+- A JSON report file: report.json
+- A GitHub Actions artifact: glossary-report

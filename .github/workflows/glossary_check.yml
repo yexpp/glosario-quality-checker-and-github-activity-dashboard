@@ -28,12 +28,13 @@ jobs:
           pip install ruamel.yaml PyGithub python-dotenv
 
       - name: Run glossary validation
+        working-directory: Quality_Assessment
         run: |
-          python glossary_check_runner.py | tee report.json
+          python glossary_check_runner.py > report.json
 
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: glossary-report
-          path: report.json
+          path: Quality_Assessment/report.json
