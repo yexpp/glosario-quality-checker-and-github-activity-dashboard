@@ -22,25 +22,28 @@ from glossary_checker import (
 # Dictionary to store logs categorized by check name
 LOGS = defaultdict(list)
 
+
 def info(msg, *args, check_name=None):
-    text = f"{msg % args if args else msg}"
-    print("INFO:", text, file=sys.stderr)
+    text = msg % args if args else msg
+    print(f"::notice::{text}", file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("INFO", text))
         
+
 def warning(msg, *args, check_name=None):
-    text = f"{msg % args if args else msg}"
-    print("WARNING:", text, file=sys.stderr)
+    text = msg % args if args else msg
+    print(f"::warning::{text}", file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("WARNING", text))
         
+        
 def error(msg, *args, check_name=None):
-    text = f"{msg % args if args else msg}"
-    print("ERROR:", text, file=sys.stderr)
+    text = msg % args if args else msg
+    print(f"::error::{text}", file=sys.stderr)
     if check_name:
         LOGS[check_name].append(("ERROR", text))
-        
 
+        
 def load_glossary():
     """
     Load glossary content from YAML file.
@@ -305,4 +308,4 @@ if __name__ == "__main__":
 
     print(f"Report saved to {output_path}")
 
-    sys.exit(0)
+    sys.exit(1 if result.get("errors") else 0)

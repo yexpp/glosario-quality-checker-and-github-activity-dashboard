@@ -350,7 +350,7 @@ def check_slug_order(glossary, slug_lines=None):
             if slug_to_alpha_index[later_slug] < alpha_pos:
                 if later_slug not in reported_slugs:
                     line_num = slug_lines.get(later_slug, 'unknown line number')
-                    issues.append(f"[WARNING] - Slug'{later_slug}' (line {line_num}) is out of order.")
+                    issues.append(f"Slug'{later_slug}' (line {line_num}) is out of order.")
                     reported_slugs.add(later_slug)
                
     return issues
