@@ -94,7 +94,7 @@ def get_slug_line_map(glossary):
                 line = item.lc.key('slug')[0] + 1
             except AttributeError:
                 # Warn if line number info is missing
-                print(f"Warning: missing line info for item with slug '{item.get('slug')}'")
+                print(f"missing line info for item with slug '{item.get('slug')}'")
                 line = None
             slug = item['slug']
             slug_lines[slug] = line

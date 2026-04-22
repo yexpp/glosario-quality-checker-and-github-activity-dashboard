@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 import json
 from pathlib import Path
@@ -19,30 +20,27 @@ from glossary_checker import (
     check_def_style,
 )
 
-# Dictionary to store logs categorized by check name
+
+# Logs grouped by check_name (CI or checks)
 LOGS = defaultdict(list)
 
+IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS", "").lower() == "true"
 
-def info(msg, *args, check_name=None):
+def log(level, msg, *args, check_name="GLOBAL"):
     text = msg % args if args else msg
-    print(f"::notice::{text}", file=sys.stderr)
-    if check_name:
-        LOGS[check_name].append(("INFO", text))
-        
 
-def warning(msg, *args, check_name=None):
-    text = msg % args if args else msg
-    print(f"::warning::{text}", file=sys.stderr)
-    if check_name:
-        LOGS[check_name].append(("WARNING", text))
-        
-        
-def error(msg, *args, check_name=None):
-    text = msg % args if args else msg
-    print(f"::error::{text}", file=sys.stderr)
-    if check_name:
-        LOGS[check_name].append(("ERROR", text))
+    if not IS_GITHUB_ACTIONS:
+        print(f"[{level}] {text}")
+    else:
+        prefix = {
+            "INFO": "::notice::",
+            "WARNING": "::warning::",
+            "ERROR": "::error::",
+        }.get(level, "")
+        print(f"{prefix}{text}", file=sys.stderr)
 
+    LOGS[check_name].append((level, text))
+    
         
 def load_glossary():
     """
@@ -62,7 +60,7 @@ def load_glossary():
     if not glossary:
         raise ValueError("Parsed glossary is empty")
 
-    info("Loaded glossary with %s entries.", len(glossary))
+    log("INFO", "Loaded glossary with %s entries.", len(glossary))
     return glossary
 
 
@@ -77,13 +75,13 @@ def load_language_codes(json_path: Path):
         Dictionary mapping language codes to language names.
     """
     if not json_path.is_file():
-        error("Language codes file not found: %s", json_path)
+        log("ERROR", "Language codes file not found: %s", json_path)
         return {}
     try:
         with json_path.open("r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        error("Failed to load language codes: %s", e)
+        log("ERROR", "Failed to load language codes: %s", e)
         return {}
     
 
@@ -101,11 +99,11 @@ def report_basic_format(glossary, slug_lines, check_name="Basic Format Validatio
     """
     issues = validate_glossary(glossary, slug_lines=slug_lines)
     if issues:
-        warning("Found basic format issues:", check_name=check_name)
+        log("WARNING", "Found basic format issues:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "  - %s", issue, check_name=check_name)
         return True
-    info("All entries comply with basic structure specifications!", check_name=check_name)
+    log("INFO", "All entries comply with basic structure specifications!", check_name=check_name)
     return False
 
 
@@ -123,11 +121,12 @@ def report_ref_validity(glossary, slug_lines, check_name="Reference validity che
     """
     issues = check_ref_validity(glossary, slug_lines=slug_lines)
     if issues:
-        warning("Issues found with refs:", check_name=check_name)
+        log("WARNING", "Issues found with refs:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "  - %s", issue, check_name=check_name)
         return True
-    info("All refs reference valid slugs.", check_name=check_name)
+    
+    log("INFO", "All refs reference valid slugs.", check_name=check_name)
     return False
 
 
@@ -146,7 +145,7 @@ def report_cross_links(glossary, slug_lines, language_names, check_name="Referen
     """
     issues = check_cross_language_links(glossary, slug_lines)
     if not issues:
-        info("All cross-reference links are consistent across languages.", check_name=check_name)
+        log("INFO", "All cross-reference links are consistent across languages.", check_name=check_name)
         return False
 
     grouped = defaultdict(list)
@@ -161,13 +160,14 @@ def report_cross_links(glossary, slug_lines, language_names, check_name="Referen
         for lang in langs:
             lang_dict[lang].append((slug, line, missing_link))
 
-    warning("Missing cross-reference links found (grouped by language):", check_name=check_name)
+    log("WARNING", "Missing cross-reference links found (grouped by language):", check_name=check_name)
+    
     for lang_code in sorted(lang_dict.keys()):
         lang_name = language_names.get(lang_code, lang_code)
-        warning("  %s:", lang_name, check_name=check_name)
+        log("WARNING", "  %s:", lang_name, check_name=check_name)
         for slug, line, missing_link in sorted(lang_dict[lang_code], key=lambda x: (x[0], x[1] or 0)):
             line_info = f"line {line}" if line else ""
-            warning("    - slug '%s' (%s) missing link #%s", slug, line_info, missing_link, check_name=check_name)
+            log("WARNING", "    - slug '%s' (%s) missing link #%s", slug, line_info, missing_link, check_name=check_name)
     return True
 
 
@@ -185,11 +185,12 @@ def report_slug_order(glossary, slug_lines, check_name="Slug Order Check"):
     """
     issues = check_slug_order(glossary, slug_lines=slug_lines)
     if issues:
-        warning("Entries are not sorted in slug alphabetical order:", check_name=check_name)
+        log("WARNING", "Entries are not sorted in slug alphabetical order:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "  - %s", issue, check_name=check_name)
         return True
-    info("Entries are sorted in slug alphabetical order.", check_name=check_name)
+    
+    log("INFO", "Entries are sorted in slug alphabetical order.", check_name=check_name)
     return False
 
 
@@ -207,11 +208,12 @@ def report_language_order(glossary, slug_lines, check_name="Language Code Order 
     """
     issues = check_language_order(glossary, slug_lines=slug_lines)
     if issues:
-        warning("Entries with incorrect language code order:", check_name=check_name)
+        log("WARNING", "Entries with incorrect language code order:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "  - %s", issue, check_name=check_name)
         return True
-    info("Language codes in all entries are sorted alphabetically.", check_name=check_name)
+    
+    log("INFO", "Language codes in all entries are sorted alphabetically.", check_name=check_name)
     return False
 
 
@@ -229,13 +231,13 @@ def report_empty_defs(glossary, slug_lines, check_name="Definition Fields Non-em
     """
     issues = check_def_not_empty(glossary, slug_lines=slug_lines)
     if issues:
-        warning("Issues found with def fields:", check_name=check_name)
+        log("WARNING", "Issues found with def fields:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "  - %s", issue, check_name=check_name)
         return True
-    info("All def fields are non-empty.", check_name=check_name)
+    
+    log("INFO", "All def fields are non-empty.", check_name=check_name)
     return False
-
 
 def report_style(glossary, slug_lines, style_marker=">", check_name="Definition Fields Format check"):
     """
@@ -252,11 +254,12 @@ def report_style(glossary, slug_lines, style_marker=">", check_name="Definition 
     """
     issues = check_def_style(glossary, style_marker, slug_lines=slug_lines)
     if issues:
-        warning("YAML style issues found in def fields:", check_name=check_name)
+        log("WARNING", "YAML style issues found in def fields:", check_name=check_name)
         for issue in issues:
-            warning("  - %s", issue, check_name=check_name)
+            log("WARNING", "YAML style issues found in def fields:", check_name=check_name)
         return True
-    info("All def fields use the correct YAML folded style.", check_name=check_name)
+    
+    log("INFO", "All def fields use the correct YAML folded style.", check_name=check_name)
     return False
 
 
@@ -295,7 +298,7 @@ def run_glossary_check(language_codes_path="language-codes.json"):
         has_issues |= issue
         results.append((name, "⚠️ Issue found" if issue else "✅ Passed"))
 
-    return {"success": not has_issues, "results": results, "logs": LOGS}
+    return {"success": not has_issues, "results": results, "logs": dict(LOGS)}
 
 
 if __name__ == "__main__":
@@ -306,6 +309,5 @@ if __name__ == "__main__":
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
-    print(f"Report saved to {output_path}")
-
-    sys.exit(1 if result.get("errors") else 0)
+    log("INFO", f"Report saved to {output_path}")
+    sys.exit(0 if result["success"] else 1)
